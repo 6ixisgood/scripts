@@ -82,7 +82,7 @@ def main(url="https://soundcloud.com/jazzio/dreamer", directory="."):
         f.write(r.get_mp3_data())
 
     # get album cover
-    cover = requests.get(r.get_json_data()['artwork_url']).content
+    cover = requests.get(r.get_json_data()['artwork_url'].replace("-large", "-t500x500")).content
 
     # edit mp3 tags
     mp3 = MP3(filename)
