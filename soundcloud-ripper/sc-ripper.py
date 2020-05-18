@@ -1,4 +1,4 @@
-#!./venv/bin/python3
+#!/usr/bin/python3
 import sys, os
 import requests
 import re
@@ -61,28 +61,30 @@ class Ripper:
         return self.mp3_data
 
 
-def main(url="https://soundcloud.com/jazzio/dreamer", directory="."):
+def main(url, directory="."):
     # slice off the trailing slash
     directory = directory[:-1] if (directory[-1] == '/') else directory
     # find out if path is relative or not
     if directory[0:1] == '..':
         directory = '{}/{}'.format(os.getcwd(), directory)
     elif directory[0] == '.':
-        directory = '{}/{}'.format(os.getcwd(), directory[1:] if len(directory) > 1 else '')
+        directory = '{}{}'.format(os.getcwd(), directory[1:] if len(directory) > 1 else '')
 
     # # get necessary mp3 info
     r = Ripper(url)
     mp3_data = r.get_mp3_data()
     artist = r.get_json_data()['user']['username']
     title = r.get_json_data()['title']
-    filename = "{}/{}-{}.mp3".format(directory, title, artist).replace(' ', '-')
-
+    title_filename = title.replace(' ', '-')
+    filename = "{}/{}-{}.mp3".format(directory, title_filename, artist)
     # write to file
     with open(filename, "wb+") as f:
         f.write(r.get_mp3_data())
 
     # get album cover
-    cover = requests.get(r.get_json_data()['artwork_url'].replace("-large", "-t500x500")).content
+    artwork_url = r.get_json_data()['artwork_url']
+    if (artwork_url is not None):
+        cover = requests.get(artwork_url.replace("-large", "-t500x500")).content
 
     # edit mp3 tags
     mp3 = MP3(filename)
@@ -93,14 +95,15 @@ def main(url="https://soundcloud.com/jazzio/dreamer", directory="."):
 
     mp3.tags.add(TIT2(text=title))
     mp3.tags.add(TPE1(text=artist))
-    mp3.tags.add(
-        APIC(
-            encoding=3,
-            mime='image/jpeg',
-            type=3,
-            desc=u'Cover',
-            data=cover
-        )
+    if (artwork_url is not None):
+        mp3.tags.add(
+            APIC(
+                encoding=3,
+                mime='image/jpeg',
+                type=3,
+                desc=u'Cover',
+                data=cover
+            )
     )
     mp3.save()
 
@@ -112,10 +115,3 @@ if __name__ == '__main__':
         main(sys.argv[1])
     else:
         print("Usage: sc-ripper.py url dir")
-
-
-
-
-
-
-
